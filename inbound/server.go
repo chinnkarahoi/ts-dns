@@ -149,7 +149,7 @@ func (group *Group) PollIPv6() {
 		} else {
 			log.Infof("%s group IPv6 policy: enable", group.Name)
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
