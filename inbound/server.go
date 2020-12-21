@@ -1,7 +1,10 @@
 package inbound
 
 import (
+	"fmt"
+	"net/http"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/janeczku/go-ipset/ipset"
@@ -24,10 +27,12 @@ type Group struct {
 	TCPPingPort int
 	ECS         *dns.EDNS0_SUBNET
 	NoCookie    bool
+	TestIPv6    []string `toml:"test_ipv6"`
+	disableIPv6 bool
 }
 
 // CallDNS 向组内的dns服务器转发请求，可能返回nil
-func (group *Group) CallDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
+func (group *Group) callDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	if len(group.Callers) == 0 || request == nil {
 		return nil
 	}
@@ -69,6 +74,18 @@ func (group *Group) CallDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	return nil
 }
 
+func (group *Group) CallDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
+	records := group.callDNS(ctx, request)
+	if group.disableIPv6 {
+		for i, record := range records.Answer {
+			if _, ok := record.(*dns.AAAA); ok {
+				records.Answer[i] = new(dns.AAAA)
+			}
+		}
+	}
+	return records
+}
+
 // AddIPSet 将dns响应中所有的ipv4地址加入group指定的ipset
 func (group *Group) AddIPSet(ctx *context.Context, r *dns.Msg) {
 	if group.IPSet == nil || r == nil {
@@ -80,6 +97,59 @@ func (group *Group) AddIPSet(ctx *context.Context, r *dns.Msg) {
 		}
 	}
 	return
+}
+
+func testHttpConn(ip string, host string) error {
+	url := fmt.Sprintf("http://[%s]", ip)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	log.Infof("%s %s %v", ip, host, resp.StatusCode)
+	return nil
+}
+
+func (group *Group) PollIPv6() {
+	if len(group.TestIPv6) == 0 {
+		return
+	}
+	for {
+		disableIPv6 := true
+		for _, domain := range group.TestIPv6 {
+			msg := new(dns.Msg)
+			msg.SetQuestion(domain+".", dns.TypeAAAA)
+			records := group.callDNS(context.NewEmptyContext(0), msg)
+			for _, record := range records.Answer {
+				if ans, ok := record.(*dns.AAAA); ok {
+					if err := testHttpConn(ans.AAAA.String(), domain); err == nil {
+						disableIPv6 = false
+						break
+					} else {
+						log.Infoln(err)
+					}
+					log.Infof("%s %s", domain, ans.AAAA.String())
+				}
+			}
+			if !disableIPv6 {
+				break
+			}
+		}
+		group.disableIPv6 = disableIPv6
+		if group.disableIPv6 {
+			log.Info("current IPv6 policy: disable")
+		} else {
+			log.Info("current IPv6 policy: enable")
+		}
+		time.Sleep(10 * time.Second)
+	}
 }
 
 // Handler 存储主要配置的dns请求处理器，程序核心

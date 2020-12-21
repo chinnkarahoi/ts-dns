@@ -60,7 +60,8 @@ type Group struct {
 	FastestV4   bool `toml:"fastest_v4"`
 	TCPPingPort int  `toml:"tcp_ping_port"`
 	Rules       []string
-	RulesFile   string `toml:"rules_file"`
+	RulesFile   string   `toml:"rules_file"`
+	TestIPv6    []string `toml:"test_ipv6"`
 }
 
 // GenIPSet 读取ipset配置并打包成IPSet对象
@@ -226,7 +227,7 @@ func (conf *Conf) GenGroups() (groups map[string]*inbound.Group, err error) {
 		inboundGroup := &inbound.Group{
 			Callers: group.GenCallers(), Concurrent: group.Concurrent,
 			FastestV4: group.FastestV4, TCPPingPort: group.TCPPingPort,
-			NoCookie: group.NoCookie,
+			NoCookie: group.NoCookie, TestIPv6: group.TestIPv6,
 		}
 		if inboundGroup.Concurrent {
 			log.Warnln("enable concurrent dns in group " + name)

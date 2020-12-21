@@ -35,6 +35,7 @@ max_ttl = 86400  # 最大ttl，单位为秒
 
   fastest_v4 = true  # 选择ping值最低的ipv4地址作为响应，启用且使用icmp ping时建议以root权限允许本程序
   tcp_ping_port = 80  # 当启用fastest_v4时，如该值大于0则使用tcp ping，小于等于0则使用icmp ping
+  test_ipv6 = [ "mail.qq.com", "163.com", "189.cn", "10086.cn", "iqiyi.com" ]
 
   [groups.dirty]  # 必选分组，匹配GFWList的域名会归类到该组
   socks5 = "127.0.0.1:1080"  # 当使用国外53端口dns解析时推荐用socks5代理解析
@@ -42,6 +43,7 @@ max_ttl = 86400  # 最大ttl，单位为秒
   dot = ["1.0.0.1:853@cloudflare-dns.com"]  # dns over tls服务器
   # 警告：如果本机的dns指向ts-dns自身，且DoH地址中的域名被归类到该组，则会出现回环解析的情况，此时需要在上面的hosts中指定对应IP
   doh = ["https://cloudflare-dns.com/dns-query"]  # dns over https服务器
+  test_ipv6 = [ "google.com", "youtube.com", "facebook.com" ]
 
   # 警告：进程启动时会覆盖已有同名IPSet
   ipset = "blocked"  # 目标IPSet名称，该组所有域名的ipv4解析结果将加入到该IPSet中
