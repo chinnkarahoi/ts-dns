@@ -77,7 +77,7 @@ func (group *Group) callDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 
 func (group *Group) CallDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	records := group.callDNS(ctx, request)
-	if group.DisableIPv6 {
+	if group.DisableIPv6 && records != nil {
 		for i, record := range records.Answer {
 			if _, ok := record.(*dns.AAAA); ok {
 				records.Answer[i] = new(dns.AAAA)
@@ -128,6 +128,9 @@ func (group *Group) PollIPv6() {
 			msg := new(dns.Msg)
 			msg.SetQuestion(domain+".", dns.TypeAAAA)
 			records := group.callDNS(context.NewEmptyContext(0), msg)
+      if records == nil {
+        continue
+      }
 			for _, record := range records.Answer {
 				if ans, ok := record.(*dns.AAAA); ok {
 					if err := testHttpConn(ans.AAAA.String(), domain); err == nil {
