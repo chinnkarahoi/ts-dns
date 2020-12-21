@@ -28,7 +28,8 @@ type Group struct {
 	ECS         *dns.EDNS0_SUBNET
 	NoCookie    bool
 	TestIPv6    []string `toml:"test_ipv6"`
-	disableIPv6 bool
+	DisableIPv6 bool
+	Name        string
 }
 
 // CallDNS 向组内的dns服务器转发请求，可能返回nil
@@ -76,7 +77,7 @@ func (group *Group) callDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 
 func (group *Group) CallDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	records := group.callDNS(ctx, request)
-	if group.disableIPv6 {
+	if group.DisableIPv6 {
 		for i, record := range records.Answer {
 			if _, ok := record.(*dns.AAAA); ok {
 				records.Answer[i] = new(dns.AAAA)
@@ -142,11 +143,11 @@ func (group *Group) PollIPv6() {
 				break
 			}
 		}
-		group.disableIPv6 = disableIPv6
-		if group.disableIPv6 {
-			log.Info("current IPv6 policy: disable")
+		group.DisableIPv6 = disableIPv6
+		if group.DisableIPv6 {
+			log.Infof("%s group IPv6 policy: disable", group.Name)
 		} else {
-			log.Info("current IPv6 policy: enable")
+			log.Infof("%s group IPv6 policy: enable", group.Name)
 		}
 		time.Sleep(10 * time.Second)
 	}

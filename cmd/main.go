@@ -44,9 +44,6 @@ func main() {
 	// 启动dns服务后异步解析DoH服务器域名
 	go func() { time.Sleep(time.Second); handler.ResolveDoH() }()
 	// 启动dns服务，因为可能会同时监听TCP/UDP，所以封装个函数
-	for _, group := range handler.Groups {
-		go group.PollIPv6()
-	}
 	wg := sync.WaitGroup{}
 	runSrv := func(net string) {
 		defer wg.Done()
@@ -64,6 +61,9 @@ func main() {
 		wg.Add(2)
 		go runSrv("udp")
 		go runSrv("tcp")
+	}
+	for _, group := range handler.Groups {
+		go group.PollIPv6()
 	}
 	wg.Wait()
 	log.Info("ts-dns exited.")

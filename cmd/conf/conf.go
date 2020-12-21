@@ -228,6 +228,7 @@ func (conf *Conf) GenGroups() (groups map[string]*inbound.Group, err error) {
 			Callers: group.GenCallers(), Concurrent: group.Concurrent,
 			FastestV4: group.FastestV4, TCPPingPort: group.TCPPingPort,
 			NoCookie: group.NoCookie, TestIPv6: group.TestIPv6,
+			Name: name, DisableIPv6: true,
 		}
 		if inboundGroup.Concurrent {
 			log.Warnln("enable concurrent dns in group " + name)
