@@ -125,6 +125,7 @@ func (group *Group) PollIPv6() {
 	}
 	for {
 		disableIPv6 := true
+		oldDisableIPv6 := group.DisableIPv6
 		for _, domain := range group.TestIPv6 {
 			msg := new(dns.Msg)
 			msg.SetQuestion(domain+".", dns.TypeAAAA)
@@ -148,7 +149,7 @@ func (group *Group) PollIPv6() {
 				break
 			}
 		}
-		if disableIPv6 != group.DisableIPv6 {
+		if disableIPv6 != oldDisableIPv6 {
 			group.DisableIPv6 = disableIPv6
 			if disableIPv6 {
 				log.Infof("%s group IPv6 policy: disable", group.Name)
