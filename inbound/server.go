@@ -123,16 +123,24 @@ func (group *Group) PollIPv6() {
 	if len(group.TestIPv6) == 0 {
 		return
 	}
+	count := 0
+	cache := make(map[string]*dns.Msg)
 	for {
 		disableIPv6 := true
 		oldDisableIPv6 := group.DisableIPv6
 		for _, domain := range group.TestIPv6 {
 			msg := new(dns.Msg)
 			msg.SetQuestion(domain+".", dns.TypeAAAA)
-			records := group.callDNS(context.NewEmptyContext(0), msg)
+			var records *dns.Msg
+			if r, ok := cache[domain]; ok && count != 0 {
+				records = r
+			} else {
+				records = group.callDNS(context.NewEmptyContext(0), msg)
+			}
 			if records == nil {
 				continue
 			}
+			cache[domain] = records
 			for _, record := range records.Answer {
 				if ans, ok := record.(*dns.AAAA); ok {
 					if err := testHttpConn(ans.AAAA.String(), domain); err == nil {
@@ -157,6 +165,7 @@ func (group *Group) PollIPv6() {
 				log.Infof("%s group IPv6 policy: enable", group.Name)
 			}
 		}
+		count = (count + 1) % 10
 		time.Sleep(5 * time.Second)
 	}
 }
