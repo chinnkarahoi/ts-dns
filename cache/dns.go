@@ -1,12 +1,14 @@
 package cache
 
 import (
-	"github.com/miekg/dns"
-	"github.com/valyala/fastrand"
-	"github.com/wolf-joe/ts-dns/core/common"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
+	"github.com/valyala/fastrand"
+	"github.com/wolf-joe/ts-dns/core/common"
 )
 
 // DNSCache DNS响应缓存器
@@ -75,7 +77,8 @@ func (cache *DNSCache) Set(request *dns.Msg, r *dns.Msg) {
 		cacheKey += "." + subnet
 	}
 	cacheKey = strings.ToLower(cacheKey)
-	var ex = cache.maxTTL
+	randInc := time.Duration(rand.Int() % int(cache.maxTTL/time.Second))
+	var ex = cache.maxTTL + randInc*time.Second
 	for _, answer := range r.Answer {
 		if ttl := time.Duration(answer.Header().Ttl) * time.Second; ttl < ex {
 			ex = ttl
