@@ -148,11 +148,13 @@ func (group *Group) PollIPv6() {
 				break
 			}
 		}
-		group.DisableIPv6 = disableIPv6
-		if group.DisableIPv6 {
-			log.Infof("%s group IPv6 policy: disable", group.Name)
-		} else {
-			log.Infof("%s group IPv6 policy: enable", group.Name)
+		if disableIPv6 != group.DisableIPv6 {
+			group.DisableIPv6 = disableIPv6
+			if disableIPv6 {
+				log.Infof("%s group IPv6 policy: disable", group.Name)
+			} else {
+				log.Infof("%s group IPv6 policy: enable", group.Name)
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}
