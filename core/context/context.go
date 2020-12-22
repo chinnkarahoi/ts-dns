@@ -24,6 +24,17 @@ type Context struct {
 	fields map[string]interface{}
 }
 
+func (ctx *Context) LogFields() logrus.Fields {
+	// shallow copy
+	fields := make(map[string]interface{}, len(ctx.fields))
+	for k, v := range ctx.fields {
+		if k != LogIdKey {
+			fields[k] = v
+		}
+	}
+	return fields
+}
+
 func (ctx *Context) Fields() logrus.Fields {
 	// shallow copy
 	fields := make(map[string]interface{}, len(ctx.fields))

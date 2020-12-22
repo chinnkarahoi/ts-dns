@@ -241,12 +241,12 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 	}
 	// 检测是否命中hosts
 	if r = handler.HitHosts(ctx, request); r != nil {
-		handler.LogQuery(ctx.Fields(), "hit hosts", "")
+		handler.LogQuery(ctx.LogFields(), "hit hosts", "")
 		return
 	}
 	// 检测是否命中dns缓存
 	if r = handler.Cache.Get(request); r != nil {
-		handler.LogQuery(ctx.Fields(), "hit cache", "")
+		handler.LogQuery(ctx.LogFields(), "hit cache", "")
 		return
 	}
 
@@ -254,7 +254,7 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 	var name string
 	for name, group = range handler.Groups {
 		if match, ok := group.Matcher.Match(question.Name); ok && match {
-			handler.LogQuery(ctx.Fields(), "match by rules", name)
+			handler.LogQuery(ctx.LogFields(), "match by rules", name)
 			r = group.CallDNS(ctx, request)
 			// 设置dns缓存
 			handler.Cache.Set(request, r)
@@ -265,13 +265,13 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 	group = handler.Groups["clean"] // 设置group变量以在defer里添加ipset
 	r = group.CallDNS(ctx, request)
 	if allInRange(r, handler.CNIP) {
-		// 未出现非cn ip，流程结束
-		handler.LogQuery(ctx.Fields(), "match cn ipv4", "clean")
+		// 出现cn ip，流程结束
+		handler.LogQuery(ctx.LogFields(), "match cn ipv4", "clean")
 	} else if ipv6InRange(r, handler.CNIPv6) {
-		handler.LogQuery(ctx.Fields(), "match cn ipv6", "clean")
+		handler.LogQuery(ctx.LogFields(), "match cn ipv6", "clean")
 	} else {
-		// 出现非cn ip，用dirty组dns再次解析
-		handler.LogQuery(ctx.Fields(), "not match cnip", "dirty")
+		// 非cn ip，用dirty组dns再次解析
+		handler.LogQuery(ctx.LogFields(), "not match cnip", "dirty")
 		group = handler.Groups["dirty"] // 设置group变量以在defer里添加ipset
 		r = group.CallDNS(ctx, request)
 	}
