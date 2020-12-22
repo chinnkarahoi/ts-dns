@@ -48,7 +48,7 @@ func (group *Group) callDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	call := func(caller outbound.Caller, request *dns.Msg) *dns.Msg {
 		r, err := caller.Call(request)
 		if err != nil {
-			log.WithFields(ctx.Fields()).Errorf("query dns error: %v", err)
+			log.WithFields(ctx.Fields()).Debugf("query dns error: %v", err)
 		}
 		ch <- r
 		return r
@@ -72,6 +72,7 @@ func (group *Group) callDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	} else if group.FastestV4 { // 选择ping值最低的IPv4地址作为返回值
 		return fastestA(ch, len(group.Callers), group.TCPPingPort)
 	}
+	log.WithFields(ctx.Fields()).Error("no result found")
 	return nil
 }
 
@@ -114,7 +115,7 @@ func testHttpConn(ip string, host string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	log.Infof("%s %s %v", ip, host, resp.StatusCode)
+	log.Debugf("%s %s %v", ip, host, resp.StatusCode)
 	return nil
 }
 
@@ -137,9 +138,10 @@ func (group *Group) PollIPv6() {
 						disableIPv6 = false
 						break
 					} else {
-						log.Infoln(err)
+						group.DisableIPv6 = true
+						log.Debugln(err)
 					}
-					log.Infof("%s %s", domain, ans.AAAA.String())
+					log.Debugf("%s %s", domain, ans.AAAA.String())
 				}
 			}
 			if !disableIPv6 {
