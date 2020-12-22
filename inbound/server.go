@@ -125,6 +125,7 @@ func (group *Group) PollIPv6() {
 	}
 	count := 0
 	cache := make(map[string]*dns.Msg)
+	sleepTime := time.Second * 0
 	for {
 		disableIPv6 := true
 		oldDisableIPv6 := group.DisableIPv6
@@ -166,7 +167,10 @@ func (group *Group) PollIPv6() {
 			}
 		}
 		count = (count + 1) % 10
-		time.Sleep(5 * time.Second)
+		if sleepTime <= 30*time.Second {
+			sleepTime += time.Second * 5
+		}
+		time.Sleep(sleepTime)
 	}
 }
 
