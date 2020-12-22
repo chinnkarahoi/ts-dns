@@ -1,16 +1,17 @@
 package inbound
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"github.com/miekg/dns"
-	"github.com/sparrc/go-ping"
-	"github.com/wolf-joe/ts-dns/cache"
-	"github.com/wolf-joe/ts-dns/core/common"
 	"math"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/miekg/dns"
+	"github.com/sparrc/go-ping"
+	"github.com/wolf-joe/ts-dns/cache"
+	"github.com/wolf-joe/ts-dns/core/common"
 )
 
 const maxRtt = 500
@@ -18,11 +19,20 @@ const maxRtt = 500
 // 如dns响应中所有ipv4地址都在目标范围内（或没有ipv4地址）返回true，否则返回False
 func allInRange(r *dns.Msg, ipRange *cache.RamSet) bool {
 	for _, a := range common.ExtractA(r) {
-		if ipv4 := net.ParseIP(a.A.String()).To4(); ipv4 != nil && !ipRange.Contain(ipv4) {
-			return false
+		if ipv4 := net.ParseIP(a.A.String()).To4(); ipv4 != nil && ipRange.Contain(ipv4) {
+			return true
 		}
 	}
-	return true
+	return false
+}
+
+func ipv6InRange(r *dns.Msg, ipRange *cache.RamSet) bool {
+	for _, a := range common.ExtractAAAA(r) {
+		if ipv6 := net.ParseIP(a.AAAA.String()).To16(); ipv6 != nil && ipRange.Contain(ipv6) {
+			return true
+		}
+	}
+	return false
 }
 
 // 获取到目标ip的ping值（毫秒），当tcpPort大于0时使用tcp ping，否则使用icmp ping

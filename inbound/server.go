@@ -128,9 +128,9 @@ func (group *Group) PollIPv6() {
 			msg := new(dns.Msg)
 			msg.SetQuestion(domain+".", dns.TypeAAAA)
 			records := group.callDNS(context.NewEmptyContext(0), msg)
-      if records == nil {
-        continue
-      }
+			if records == nil {
+				continue
+			}
 			for _, record := range records.Answer {
 				if ans, ok := record.(*dns.AAAA); ok {
 					if err := testHttpConn(ans.AAAA.String(), domain); err == nil {
@@ -165,6 +165,7 @@ type Handler struct {
 	Cache         *cache.DNSCache
 	GFWMatcher    *matcher.ABPlus
 	CNIP          *cache.RamSet
+	CNIPv6        *cache.RamSet
 	HostsReaders  []hosts.Reader
 	Groups        map[string]*Group
 	QueryLogger   *log.Logger
@@ -263,13 +264,12 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 	r = group.CallDNS(ctx, request)
 	if allInRange(r, handler.CNIP) {
 		// 未出现非cn ip，流程结束
-		handler.LogQuery(ctx.Fields(), "cn/empty ipv4", "clean")
-	} else if blocked, ok := handler.GFWMatcher.Match(question.Name); !ok || !blocked {
-		// 出现非cn ip但域名不匹配gfwlist，流程结束
-		handler.LogQuery(ctx.Fields(), "not match gfwlist", "clean")
+		handler.LogQuery(ctx.Fields(), "match cn ipv4", "clean")
+	} else if ipv6InRange(r, handler.CNIPv6) {
+		handler.LogQuery(ctx.Fields(), "match cn ipv6", "clean")
 	} else {
-		// 出现非cn ip且域名匹配gfwlist，用dirty组dns再次解析
-		handler.LogQuery(ctx.Fields(), "match gfwlist", "dirty")
+		// 出现非cn ip，用dirty组dns再次解析
+		handler.LogQuery(ctx.Fields(), "not match cnip", "dirty")
 		group = handler.Groups["dirty"] // 设置group变量以在defer里添加ipset
 		r = group.CallDNS(ctx, request)
 	}

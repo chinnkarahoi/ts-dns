@@ -159,6 +159,7 @@ type Conf struct {
 	GFWList       string
 	GFWb64        bool `toml:"gfwlist_b64"`
 	CNIP          string
+	CNIPv6        string    `toml:"cnip_v6"`
 	Logger        *QueryLog `toml:"query_log"`
 	HostsFiles    []string  `toml:"hosts_files"`
 	Hosts         map[string]string
@@ -178,6 +179,9 @@ func (conf *Conf) SetDefault() {
 	}
 	if conf.CNIP == "" {
 		conf.CNIP = "cnip.txt"
+	}
+	if conf.CNIPv6 == "" {
+		conf.CNIPv6 = "cnip_v6.txt"
 	}
 }
 
@@ -287,6 +291,10 @@ func NewHandler(filename string) (handler *inbound.Handler, err error) {
 	// 读取cnip
 	if handler.CNIP, err = cache.NewRamSetByFile(config.CNIP); err != nil {
 		log.WithField("file", config.CNIP).Errorf("read cnip error: %v", err)
+		return nil, err
+	}
+	if handler.CNIPv6, err = cache.NewRamSetByFile(config.CNIPv6); err != nil {
+		log.WithField("file", config.CNIPv6).Errorf("read cnip error: %v", err)
 		return nil, err
 	}
 	// 读取groups

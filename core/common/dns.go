@@ -2,10 +2,11 @@ package common
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"github.com/miekg/dns"
 	"net"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/miekg/dns"
 )
 
 // ExtractA 提取dns响应中的A记录
@@ -17,6 +18,20 @@ func ExtractA(r *dns.Msg) (records []*dns.A) {
 		switch answer.(type) {
 		case *dns.A:
 			records = append(records, answer.(*dns.A))
+		}
+	}
+	return
+}
+
+// ExtractA 提取dns响应中的AAAA记录
+func ExtractAAAA(r *dns.Msg) (records []*dns.AAAA) {
+	if r == nil {
+		return
+	}
+	for _, answer := range r.Answer {
+		switch answer.(type) {
+		case *dns.AAAA:
+			records = append(records, answer.(*dns.AAAA))
 		}
 	}
 	return
