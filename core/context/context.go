@@ -28,7 +28,7 @@ func (ctx *Context) LogFields() logrus.Fields {
 	// shallow copy
 	fields := make(map[string]interface{}, len(ctx.fields))
 	for k, v := range ctx.fields {
-		if k != LogIdKey {
+		if k != LogIdKey && k != SrcKey {
 			fields[k] = v
 		}
 	}
