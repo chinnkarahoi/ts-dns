@@ -72,7 +72,7 @@ func (group *Group) callDNS(ctx *context.Context, request *dns.Msg) *dns.Msg {
 	} else if group.FastestV4 { // 选择ping值最低的IPv4地址作为返回值
 		return fastestA(ch, len(group.Callers), group.TCPPingPort)
 	}
-	log.WithFields(ctx.Fields()).Error("no result found")
+	log.WithFields(ctx.LogFields()).Error("no result found")
 	return nil
 }
 
@@ -273,9 +273,14 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 		handler.LogQuery(ctx.LogFields(), "match cn ipv6", "clean")
 	} else {
 		// 非cn ip，用dirty组dns再次解析
-		handler.LogQuery(ctx.LogFields(), "not match cnip", "dirty")
 		group = handler.Groups["dirty"] // 设置group变量以在defer里添加ipset
-		r = group.CallDNS(ctx, request)
+		rr := group.CallDNS(ctx, request)
+		if rr != nil {
+			handler.LogQuery(ctx.LogFields(), "not match cnip", "dirty")
+			r = rr
+		} else {
+			handler.LogQuery(ctx.LogFields(), "using clean", "dirty")
+		}
 	}
 	// 设置dns缓存
 	handler.Cache.Set(request, r)
