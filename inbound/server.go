@@ -284,9 +284,11 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 	r = group.CallDNS(ctx, request)
 	if allInRange(r, handler.CNIP) {
 		// 出现cn ip，流程结束
-		handler.LogQuery(ctx.LogFields(), "match cn ipv4", "clean")
-	} else if ipv6InRange(r, handler.CNIPv6) {
-		handler.LogQuery(ctx.LogFields(), "match cn ipv6", "clean")
+		if len(common.ExtractA(r))+len(common.ExtractAAAA(r)) == 0 {
+			handler.LogQuery(ctx.LogFields(), "no ip found", "none")
+		} else {
+			handler.LogQuery(ctx.LogFields(), "match cnip", "clean")
+		}
 	} else {
 		// 非cn ip，用dirty组dns再次解析
 		group = handler.Groups["dirty"] // 设置group变量以在defer里添加ipset
