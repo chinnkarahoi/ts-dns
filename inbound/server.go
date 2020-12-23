@@ -274,9 +274,7 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 			r = group.CallDNS(ctx, request)
 			// 设置dns缓存
 			handler.Cache.Set(request, r)
-			if r != nil {
-				return
-			}
+			return
 		}
 	}
 	// 先用clean组dns解析
