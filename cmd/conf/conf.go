@@ -91,7 +91,7 @@ func (conf *Group) GenCallers() (callers []outbound.Caller) {
 			addr, network = addr[:len(addr)-4], "tcp"
 		}
 		if addr != "" {
-			if !strings.Contains(addr, ":") {
+			if !strings.Contains(addr, ":") || addr[len(addr)-1] == ']' {
 				addr += ":53"
 			}
 			callers = append(callers, outbound.NewDNSCaller(addr, network, dialer))
