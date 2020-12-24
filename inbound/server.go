@@ -273,11 +273,17 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 			handler.LogQuery(ctx.LogFields(), "match by rules", name)
 			r = group.CallDNS(ctx, request)
 			// 设置dns缓存
-			handler.Cache.Set(request, r)
+			if name == "dirty" && r == nil {
+				group := handler.Groups["clean"]
+				r = group.CallDNS(ctx, request)
+			} else {
+				handler.Cache.Set(request, r)
+			}
 			return
 		}
 	}
 	// 先用clean组dns解析
+	usingCache := true
 	group = handler.Groups["clean"] // 设置group变量以在defer里添加ipset
 	r = group.CallDNS(ctx, request)
 	if allInRange(r, handler.CNIP) {
@@ -296,10 +302,13 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 			r = rr
 		} else {
 			handler.LogQuery(ctx.LogFields(), "using clean", "dirty")
+			usingCache = false
 		}
 	}
 	// 设置dns缓存
-	handler.Cache.Set(request, r)
+	if usingCache {
+		handler.Cache.Set(request, r)
+	}
 }
 
 // ResolveDoH 为DoHCaller解析域名，只需要调用一次。考虑到回环解析，建议在ServerDNS开始后异步调用
