@@ -3,6 +3,8 @@ package inbound
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -174,6 +176,44 @@ func (group *Group) PollIPv6() {
 	}
 }
 
+// DNSCache DNS响应缓存器
+type reqCond struct {
+	cond  *sync.Cond
+	ready bool
+}
+
+func newReqCond() *reqCond {
+	return &reqCond{
+		cond:  sync.NewCond(new(sync.Mutex)),
+		ready: true,
+	}
+}
+
+type CondMap map[string]*reqCond
+
+func (c CondMap) getCacheKey(request *dns.Msg) string {
+	question := request.Question[0]
+	key := question.Name + strconv.FormatInt(int64(question.Qtype), 10)
+	if subnet := common.FormatECS(request); subnet != "" {
+		key += "." + subnet
+	}
+	key = strings.ToLower(key)
+	return key
+}
+
+func (c CondMap) get(request *dns.Msg) *reqCond {
+	key := c.getCacheKey(request)
+	cond, ok := c[key]
+	if ok {
+		return cond
+	}
+	cond = newReqCond()
+	c[key] = cond
+	return cond
+}
+
+var condMap = make(CondMap)
+
 // Handler 存储主要配置的dns请求处理器，程序核心
 type Handler struct {
 	Mux           *sync.RWMutex
@@ -260,11 +300,29 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 		handler.LogQuery(ctx.LogFields(), "hit hosts", "")
 		return
 	}
-	// 检测是否命中dns缓存
+
+	reqCond := condMap.get(request)
+	reqCond.cond.L.Lock()
+	for !reqCond.ready {
+		reqCond.cond.Wait()
+	}
+	reqCond.cond.L.Unlock()
+
 	if r = handler.Cache.Get(request); r != nil {
 		handler.LogQuery(ctx.LogFields(), "hit cache", "")
 		return
 	}
+
+	reqCond.cond.L.Lock()
+	for !reqCond.ready {
+		reqCond.cond.Wait()
+	}
+	reqCond.ready = false
+	defer func() {
+		reqCond.ready = true
+		reqCond.cond.Signal()
+		reqCond.cond.L.Unlock()
+	}()
 
 	// 判断域名是否匹配指定规则
 	var name string
