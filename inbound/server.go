@@ -191,6 +191,8 @@ func newReqCond() *reqCond {
 
 type CondMap map[string]*reqCond
 
+var mu = new(sync.RWMutex)
+
 func (c CondMap) getCacheKey(request *dns.Msg) string {
 	question := request.Question[0]
 	key := question.Name + strconv.FormatInt(int64(question.Qtype), 10)
@@ -203,12 +205,16 @@ func (c CondMap) getCacheKey(request *dns.Msg) string {
 
 func (c CondMap) get(request *dns.Msg) *reqCond {
 	key := c.getCacheKey(request)
+	mu.RLock()
 	cond, ok := c[key]
+	mu.RUnlock()
 	if ok {
 		return cond
 	}
 	cond = newReqCond()
+	mu.Lock()
 	c[key] = cond
+	mu.Unlock()
 	return cond
 }
 
@@ -323,6 +329,11 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 		reqCond.cond.Signal()
 		reqCond.cond.L.Unlock()
 	}()
+
+	if r = handler.Cache.Get(request); r != nil {
+		handler.LogQuery(ctx.LogFields(), "hit cache", "")
+		return
+	}
 
 	// 判断域名是否匹配指定规则
 	var name string
