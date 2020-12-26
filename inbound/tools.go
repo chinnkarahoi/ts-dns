@@ -16,7 +16,7 @@ import (
 
 const maxRtt = 500
 
-func allInRange(r *dns.Msg, ipRange *cache.RamSet) bool {
+func allInRange(r *dns.Msg, ipRange *cache.RamSet, ipv6Range *cache.RamSet) bool {
 	ret := true
 	for _, a := range common.ExtractA(r) {
 		ipv4 := net.ParseIP(a.A.String()).To4()
@@ -26,7 +26,7 @@ func allInRange(r *dns.Msg, ipRange *cache.RamSet) bool {
 	}
 	for _, a := range common.ExtractAAAA(r) {
 		ipv6 := net.ParseIP(a.AAAA.String()).To16()
-		if ipv6 != nil && !ipRange.Contain(ipv6) {
+		if ipv6 != nil && !ipv6Range.Contain(ipv6) {
 			return false
 		}
 	}

@@ -354,7 +354,7 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 	usingCache := true
 	group = handler.Groups["clean"] // 设置group变量以在defer里添加ipset
 	r = group.CallDNS(ctx, request)
-	if allInRange(r, handler.CNIP) {
+	if allInRange(r, handler.CNIP, handler.CNIPv6) {
 		// 出现cn ip，流程结束
 		if len(common.ExtractA(r))+len(common.ExtractAAAA(r)) == 0 {
 			handler.LogQuery(ctx.LogFields(), "no ip found", "none")
