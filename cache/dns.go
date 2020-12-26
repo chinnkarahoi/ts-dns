@@ -69,7 +69,7 @@ func (cache *DNSCache) Get(request *dns.Msg) *dns.Msg {
 // Set 设置DNS响应缓存，缓存的ttl由minTTL、maxTTL、响应本身的ttl共同决定
 func (cache *DNSCache) Set(request *dns.Msg, r *dns.Msg) {
 	question := request.Question[0]
-	if cache.ttlMap.Len() >= cache.size || r == nil || len(r.Answer) <= 0 {
+	if cache.ttlMap.Len() >= cache.size || r == nil || len(r.Answer) <= 0 && question.Qtype != dns.TypeAAAA {
 		return
 	}
 	cacheKey := question.Name + strconv.FormatInt(int64(question.Qtype), 10)
