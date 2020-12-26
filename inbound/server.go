@@ -143,14 +143,13 @@ func (group *Group) PollIPv6() {
 			if records == nil {
 				continue
 			}
-			cache[domain] = records
 			for _, record := range records.Answer {
 				if ans, ok := record.(*dns.AAAA); ok {
+					cache[domain] = records
 					if err := testHttpConn(ans.AAAA.String(), domain); err == nil {
 						disableIPv6 = false
 						break
 					} else {
-						group.DisableIPv6 = true
 						log.Debugln(err)
 					}
 					log.Debugf("%s %s", domain, ans.AAAA.String())
