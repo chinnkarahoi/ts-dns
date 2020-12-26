@@ -336,6 +336,9 @@ func (handler *Handler) ServeDNS(resp dns.ResponseWriter, request *dns.Msg) {
 
 	// 判断域名是否匹配指定规则
 	var name string
+	if match, ok := handler.Groups["drop"].Matcher.Match(question.Name); ok && match {
+		return
+	}
 	for name, group = range handler.Groups {
 		if match, ok := group.Matcher.Match(question.Name); ok && match {
 			handler.LogQuery(ctx.LogFields(), "match by rules", name)
